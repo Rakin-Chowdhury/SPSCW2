@@ -58,10 +58,23 @@ def feature_selection(train_set, train_labels, **kwargs):
 
     return [fe]
 
+def centroid(train_set_2, train_labels):
+    index=np.unique(train_labels)
+    roid = np.array([np.mean(train_set_2[train_labels == c,:], axis = 0) for c in index])
+    return roid, index
+
+
 
 def knn(train_set, train_labels, test_set, k, **kwargs):
-    # write your code here and make sure you return the predictions at the end of
-    # the function
+    train_set_2 = train_set[:, [6,9]]
+    """index=np.unique(train_labels)"""
+    """print(centroid(train_set_2,train_labels))"""
+    index = centroid(train_set_2, train_labels)[1]
+    coord = centroid(train_set_2, train_labels)[0]
+    plt.scatter(train_set_2[:,0],train_set_2[:,1])
+    for x in range(len(index)):
+        plt.scatter(coord[x][0],coord[x][1], s=600)
+    plt.show()
     return []
 
 
