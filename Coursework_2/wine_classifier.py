@@ -19,16 +19,29 @@ from utilities import load_data, print_features, print_predictions
 CLASS_1_C = r'#3366ff'
 CLASS_2_C = r'#cc3300'
 CLASS_3_C = r'#ffc34d'
+class_colours = [CLASS_1_C, CLASS_2_C, CLASS_3_C]
 
 
 MODES = ['feature_sel', 'knn', 'alt', 'knn_3d', 'knn_pca']
 
+def plotSelFeatures(feature1, feature2, labels):
+    Class_Colours= [CLASS_1_C, CLASS_2_C, CLASS_3_C]
+    Colours = []
+
+    for i in labels:
+        Colours.append(Class_Colours[int(i)-1])
+
+    plt.scatter(feature1,feature2, c = Colours)
+
+    plt.show()
+
+    return
 
 def feature_selection(train_set, train_labels, **kwargs):
 
-    #n_features = train_set.shape[1]
-    #fig, ax = plt.subplots(n_features, n_features)
-    #plt.subplots_adjust(left=0.01, right=0.99, top=0.99, bottom=0.01, wspace=0.2, hspace=0.4)
+    n_features = train_set.shape[1]
+    fig, ax = plt.subplots(n_features, n_features)
+    plt.subplots_adjust(left=0.01, right=0.99, top=0.99, bottom=0.01, wspace=0.2, hspace=0.4)
 
     #ax2 = plt.subplots(1,1)
 
@@ -37,45 +50,73 @@ def feature_selection(train_set, train_labels, **kwargs):
 
     #print(train_labels)
 
-    #for i in train_labels:
-        #print(i)
-        #Colours.append(Class_Colours[int(i)-1])
+    for i in train_labels:
+        Colours.append(Class_Colours[int(i)-1])
 
     #print(Colours)
 
-    #for j in range(13):
-        #for k in range(13):
-            #ax[j,k].scatter(train_set[:, j],train_set[:, k], c = Colours, s = 3)
-            #ax[j,k].set_title('F {} x {}'.format(j+1, k+1))
-    #plt.scatter(train_set[:, 9],train_set[:, 6], c = Colours)
+    #print(n_features)
+
+
+
+    for j in range(n_features):
+        for k in range(n_features):
+            ax[j,k].scatter(train_set[:, j],train_set[:, k], c = Colours, s = 3)
+            #ax[j,k].set_title('{} x {}'.format(j+1, k+1), fontsize = 7)
+            ax[j,k].set_yticklabels([])
+            ax[j,k].set_xticklabels([])
+
+    #plt.tight_layout()
+    plt.scatter(train_set[:, 9],train_set[:, 6], c = Colours)
     #plt.xaxis.label.set_size(1)
     #plt.yaxis.label.set_size(1)
     #plt.labelsize(1)
-    #plt.show()
+    #plotSelFeatures(train_set[:, 9], train_set[:, 6], train_labels)
+    plt.show()
     fe = np.array([6, 9])
-    
+
 
 
     return [fe]
 
-def centroid(train_set_2, train_labels):
-    index=np.unique(train_labels)
-    roid = np.array([np.mean(train_set_2[train_labels == c,:], axis = 0) for c in index])
-    return roid, index
+def KnnNeigh(reducedTrainSet, trainLabels, reducedTestSet, k):
+
+    predTestLabels = []
+    for testData in reducedTestSet:
+        neighbours= []
+        neighboursClass = []
+
+        for i, trainData in enumerate(reducedTrainSet):
+            EuDistance = np.sqrt((testData[0] - trainData[0])**2 + (testData[1] - trainData[1])**2)
+            neighbours.append([EuDistance, i])
+
+
+        knnNeighbours = sorted(neighbours)[:k]
+
+
+
+        for n in knnNeighbours:
+            neighboursClass.append(trainLabels[n[1]])
+
+
+        predTestLabels.append(int(round(np.mean(neighboursClass))))
+
+
+    return np.array(predTestLabels)
+
 
 
 
 def knn(train_set, train_labels, test_set, k, **kwargs):
-    train_set_2 = train_set[:, [6,9]]
-    """index=np.unique(train_labels)"""
-    """print(centroid(train_set_2,train_labels))"""
-    index = centroid(train_set_2, train_labels)[1]
-    coord = centroid(train_set_2, train_labels)[0]
-    plt.scatter(train_set_2[:,0],train_set_2[:,1])
-    for x in range(len(index)):
-        plt.scatter(coord[x][0],coord[x][1], s=600)
-    plt.show()
-    return []
+    train_set_R = train_set[:, [6,9]]
+    test_set_R = test_set[:, [6,9]]
+
+    predictions = KnnNeigh(train_set_R, train_labels, test_set_R, k)
+    print(Acc(test_labels, predictions))
+
+
+    return predictions
+
 
 
 def alternative_classifier(train_set, train_labels, test_set, **kwargs):
@@ -90,10 +131,60 @@ def knn_three_features(train_set, train_labels, test_set, k, **kwargs):
     return []
 
 
+def Pca(trainSet, testSet):
+
+    covMat = np.cov(trainSet, rowvar = False)
+    ei = np.linalg.eig(covMat)
+    eiValD = -np.sort(-ei[0])
+
+
+    eiVecOrdered= np.zeros(ei[1].shape)
+
+
+    vecOrder= []
+
+    j = 0
+    for i in range(np.size(ei[0])):
+        if ei[0][j] == eiValD[i]:
+            vecOrder.append(i)
+            j+=1
+
+    for z in range(np.size(ei[0])):
+        #print(z)
+
+        eiVecOrdered[z] = ei[1][vecOrder[z]]
+
+    #print(eiVecOrdered[0])
+    #print(ei[1][0])
+    #print(ei[1][vecOrder[0]])
+
+    w = np.array([eiVecOrdered[0], eiVecOrdered[1]])
+
+    reducedDataTrain = np.dot(trainSet, w.transpose())
+    reducedDataTest = np.dot(testSet, w.transpose())
+
+    return reducedDataTrain,reducedDataTest
+
+def Acc(real, precited):
+    correct = 0
+    for i, data in enumerate(real):
+        if data == precited[i]:
+            correct += 1
+    return (correct/np.size(real))*100
 def knn_pca(train_set, train_labels, test_set, k, n_components=2, **kwargs):
-    # write your code here and make sure you return the predictions at the end of
-    # the function
-    return []
+
+    reducedTrainSet , reducedTestSet = Pca(train_set, test_set)
+    #print(reducedTestSet)
+    #print(reducedTrainSet)
+
+    predicted = KnnNeigh(reducedTrainSet, train_labels, reducedTestSet, k)
+
+    #print(Acc(test_labels, predicted))
+    plt.scatter(reducedTrainSet[:,0], -reducedTrainSet[:,1])
+    plt.show()
+
+
+    return predicted
 
 
 def parse_args():
