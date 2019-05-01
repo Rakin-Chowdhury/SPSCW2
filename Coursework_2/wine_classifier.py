@@ -103,6 +103,10 @@ def feature_selection(train_set, train_labels, **kwargs):
     return [fe]
 
 def KnnNeigh(reducedTrainSet, trainLabels, reducedTestSet, k, d):
+    #Function to excecute k nn algothritm
+    # [IN] = reducedTrainSet, trainLabels, reducedTestSet : [NP array], k, d : [INT]
+    #
+    #
 
     predTestLabels = []
     for testData in reducedTestSet:
@@ -244,6 +248,8 @@ def alternative_classifier(train_set, train_labels, test_set, **kwargs):
 def knn_three_features(train_set, train_labels, test_set, k, **kwargs):
     train_set_R = train_set[:, [6,9, 3]]
     test_set_R = test_set[:, [6,9, 3]]
+
+    #3
 
     predictions = KnnNeigh(train_set_R, train_labels, test_set_R, k, 3)
     # write your code here and make sure you return the predictions at the end of
